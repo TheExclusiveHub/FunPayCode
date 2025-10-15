@@ -171,6 +171,11 @@
             cursor: pointer;
             z-index: 3000;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+
+        .admin-button:hover {
+            transform: scale(1.1);
         }
 
         .admin-panel {
@@ -288,7 +293,7 @@
     </div>
 
     <!-- Админ панель -->
-    <button id="adminButton" class="admin-button hidden">⚙</button>
+    <button id="adminButton" class="admin-button hidden" onclick="toggleAdminPanel()">⚙</button>
     
     <div id="durationSelector" class="duration-selector hidden">
         <button class="duration-option" onclick="setDuration(1)">1 день</button>
@@ -300,6 +305,12 @@
         <h2>Панель администратора</h2>
         
         <div class="admin-section">
+            <h3>Длительность промокода</h3>
+            <button onclick="toggleDurationSelector()" class="generate-button">Выбрать длительность</button>
+            <div>Текущая: <span id="currentDuration">1 день</span></div>
+        </div>
+
+        <div class="admin-section">
             <h3>Сгенерировать промокод</h3>
             <button onclick="generateSingleCode()" class="generate-button">Сгенерировать код</button>
             <div id="currentCode" class="code-item">Текущий код: -</div>
@@ -307,20 +318,20 @@
 
         <div class="admin-section">
             <h3>История кодов</h3>
-            <div id="codeHistory"></div>
+            <div id="codeHistory">Нет данных</div>
         </div>
 
         <div class="admin-section">
             <h3>Активированные коды</h3>
-            <div id="activatedCodes"></div>
+            <div id="activatedCodes">Нет данных</div>
         </div>
 
         <div class="admin-section">
             <h3>Неактивированные коды</h3>
-            <div id="inactiveCodes"></div>
+            <div id="inactiveCodes">Нет данных</div>
         </div>
 
-        <button onclick="closeAdminPanel()" class="claim-button" style="background: #666;">Закрыть</button>
+        <button onclick="closeAdminPanel()" class="claim-button" style="background: #666; margin-top: 20px;">Закрыть</button>
     </div>
 
     <script>
@@ -328,6 +339,7 @@
         const ADMIN_IP = '171.33.254.90';
         let currentDuration = 1; // дни
         let userIP = '';
+        let isAdmin = false;
 
         // Получаем IP пользователя
         async function getUserIP() {
@@ -338,17 +350,20 @@
                 checkAdminAccess();
             } catch (error) {
                 console.log('Не удалось получить IP');
+                userIP = 'unknown';
                 checkAdminAccess();
             }
         }
 
         function checkAdminAccess() {
             if (userIP === ADMIN_IP) {
+                isAdmin = true;
                 // Для админа сразу показываем контент
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 document.getElementById('adminButton').classList.remove('hidden');
                 loadAdminData();
+                startTimer();
             }
         }
 
@@ -363,7 +378,7 @@
                 document.getElementById('mainContent').classList.remove('hidden');
                 localStorage.setItem('site_activated', 'true');
                 localStorage.setItem('activation_key', key);
-                updateTimerAndPromo();
+                startTimer();
             } else {
                 messageElement.textContent = 'Неверный ключ активации!';
             }
@@ -380,7 +395,7 @@
             if (localStorage.getItem('site_activated') === 'true') {
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
-                updateTimerAndPromo();
+                startTimer();
             }
         }
 
@@ -392,9 +407,89 @@
             return '15%';
         }
 
+        // Таймер и промокоды
+        function generatePromoCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 16; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+                if ((i + 1) % 4 === 0 && i !== 15) {
+                    result += '-';
+                }
+            }
+            return result;
+        }
+
+        function getNextUpdateTime() {
+            const now = new Date();
+            const periodsPerDay = 4; // 24 часа / 6 часов
+            const periodMinutes = 6 * 60; // 6 часов в минутах
+            
+            const totalMinutesToday = now.getHours() * 60 + now.getMinutes();
+            const currentPeriod = Math.floor(totalMinutesToday / periodMinutes);
+            const nextPeriod = (currentPeriod + 1) % periodsPerDay;
+            
+            let nextUpdate = new Date(now);
+            nextUpdate.setHours(Math.floor(nextPeriod * 6), 0, 0, 0);
+            
+            // Если следующий период на следующий день
+            if (nextUpdate <= now) {
+                nextUpdate.setDate(nextUpdate.getDate() + 1);
+            }
+            
+            return nextUpdate;
+        }
+
+        function updateTimerAndPromo() {
+            const now = new Date();
+            const nextUpdate = getNextUpdateTime();
+            const timeLeft = nextUpdate - now;
+
+            // Обновляем таймер
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('timer').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Обновляем промокод и скидку каждые 6 часов
+            const currentPeriod = getCurrentPeriod();
+            let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
+            
+            if (!storedPromo || timeLeft <= 0) {
+                storedPromo = generatePromoCode();
+                const discount = generateDiscount();
+                localStorage.setItem('promoCode_' + currentPeriod, storedPromo);
+                localStorage.setItem('discount_' + currentPeriod, discount);
+                localStorage.setItem('promoCode_timestamp', Date.now());
+            }
+
+            const discount = localStorage.getItem('discount_' + currentPeriod) || '5%';
+            
+            document.getElementById('promoCode').textContent = storedPromo;
+            document.getElementById('discount').textContent = discount;
+        }
+
+        function getCurrentPeriod() {
+            const now = new Date();
+            const periodsPerDay = 4;
+            const periodMinutes = 6 * 60;
+            const totalMinutesToday = now.getHours() * 60 + now.getMinutes();
+            
+            return Math.floor(totalMinutesToday / periodMinutes);
+        }
+
+        function startTimer() {
+            updateTimerAndPromo(); // Сразу обновляем
+            setInterval(updateTimerAndPromo, 1000); // Затем каждую секунду
+        }
+
         // Админ функции
         function setDuration(days) {
             currentDuration = days;
+            const durationText = days === 1 ? '1 день' : days === 7 ? '1 неделя' : '1 месяц';
+            document.getElementById('currentDuration').textContent = durationText;
             document.getElementById('durationSelector').classList.add('hidden');
         }
 
@@ -405,8 +500,8 @@
             
             const codeData = {
                 code: code,
-                generated: new Date().toLocaleString(),
-                expires: expiryDate.toLocaleDateString(),
+                generated: new Date().toLocaleString('ru-RU'),
+                expires: expiryDate.toLocaleDateString('ru-RU'),
                 activated: false,
                 duration: currentDuration + ' дней'
             };
@@ -429,29 +524,37 @@
             // Загружаем историю
             const history = JSON.parse(localStorage.getItem('codeHistory') || '[]');
             const historyElement = document.getElementById('codeHistory');
-            historyElement.innerHTML = history.map(item => 
-                `<div class="code-item">${item.code} (${item.generated}) - ${item.duration}</div>`
-            ).join('');
+            historyElement.innerHTML = history.length > 0 ? 
+                history.map(item => 
+                    `<div class="code-item">${item.code} (${item.generated}) - ${item.duration}</div>`
+                ).join('') : 'Нет данных';
             
             // Загружаем активированные коды
             const activated = JSON.parse(localStorage.getItem('activatedCodes') || '[]');
             const activatedElement = document.getElementById('activatedCodes');
-            activatedElement.innerHTML = activated.map(item => 
-                `<div class="code-item">${item.code} - до ${item.expires}</div>`
-            ).join('');
+            activatedElement.innerHTML = activated.length > 0 ? 
+                activated.map(item => 
+                    `<div class="code-item">${item.code} - до ${item.expires}</div>`
+                ).join('') : 'Нет данных';
             
             // Загружаем неактивированные коды
             const inactive = JSON.parse(localStorage.getItem('inactiveCodes') || '[]');
             const inactiveElement = document.getElementById('inactiveCodes');
-            inactiveElement.innerHTML = inactive.map(item => 
-                `<div class="code-item">${item.code} - до ${item.expires}</div>`
-            ).join('');
+            inactiveElement.innerHTML = inactive.length > 0 ? 
+                inactive.map(item => 
+                    `<div class="code-item">${item.code} - до ${item.expires}</div>`
+                ).join('') : 'Нет данных';
         }
 
         // UI функции
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
-            panel.classList.toggle('hidden');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                loadAdminData();
+            } else {
+                panel.classList.add('hidden');
+            }
         }
 
         function toggleDurationSelector() {
@@ -461,6 +564,7 @@
 
         function closeAdminPanel() {
             document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('durationSelector').classList.add('hidden');
         }
 
         function closeSuccessModal() {
@@ -487,102 +591,6 @@
                 document.getElementById('claimButton').disabled = true;
                 document.getElementById('claimedMessage').classList.remove('hidden');
             }
-        }
-
-        // Оригинальные функции таймера и промокодов
-        function generatePromoCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 16; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-                if ((i + 1) % 4 === 0 && i !== 15) {
-                    result += '-';
-                }
-            }
-            return result;
-        }
-
-        function getNextUpdateTime() {
-            const now = new Date();
-            const mskOffset = 3 * 60;
-            const nowMsk = new Date(now.getTime() + (mskOffset - now.getTimezoneOffset()) * 60000);
-            
-            const periodsPerDay = 4;
-            const periodMinutes = 6 * 60;
-            
-            const totalMinutesToday = nowMsk.getHours() * 60 + nowMsk.getMinutes();
-            const currentPeriod = Math.floor(totalMinutesToday / periodMinutes);
-            const nextPeriod = (currentPeriod + 1) % periodsPerDay;
-            
-            let nextUpdate = new Date(nowMsk);
-            nextUpdate.setHours(Math.floor(nextPeriod * 6), 0, 0, 0);
-            
-            if (nextUpdate <= nowMsk) {
-                nextUpdate.setDate(nextUpdate.getDate() + 1);
-            }
-            
-            return new Date(nextUpdate.getTime() - (mskOffset - now.getTimezoneOffset()) * 60000);
-        }
-
-        function updateTimerAndPromo() {
-            const now = new Date();
-            const nextUpdate = getNextUpdateTime();
-            const timeLeft = nextUpdate - now;
-
-            if (timeLeft <= 0) {
-                updatePromoCode();
-                return;
-            }
-
-            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-            document.getElementById('timer').textContent = 
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-            const currentPeriod = getCurrentPeriod();
-            let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
-            
-            if (!storedPromo) {
-                storedPromo = generatePromoCode();
-                localStorage.setItem('promoCode_' + currentPeriod, storedPromo);
-                localStorage.setItem('promoCode_timestamp', currentPeriod);
-                
-                // Генерируем скидку
-                const discount = generateDiscount();
-                localStorage.setItem('discount_' + currentPeriod, discount);
-            }
-
-            const discount = localStorage.getItem('discount_' + currentPeriod) || '5%';
-            
-            document.getElementById('promoCode').textContent = storedPromo;
-            document.getElementById('discount').textContent = discount;
-        }
-
-        function getCurrentPeriod() {
-            const now = new Date();
-            const mskOffset = 3 * 60;
-            const nowMsk = new Date(now.getTime() + (mskOffset - now.getTimezoneOffset()) * 60000);
-            
-            const periodsPerDay = 4;
-            const periodMinutes = 6 * 60;
-            const totalMinutesToday = nowMsk.getHours() * 60 + nowMsk.getMinutes();
-            
-            return Math.floor(totalMinutesToday / periodMinutes);
-        }
-
-        function updatePromoCode() {
-            const currentPeriod = getCurrentPeriod();
-            const newPromoCode = generatePromoCode();
-            const discount = generateDiscount();
-            
-            localStorage.setItem('promoCode_' + currentPeriod, newPromoCode);
-            localStorage.setItem('promoCode_timestamp', currentPeriod);
-            localStorage.setItem('discount_' + currentPeriod, discount);
-            
-            document.getElementById('promoCode').textContent = newPromoCode;
-            document.getElementById('discount').textContent = discount;
         }
 
         // Защита от инструментов разработчика
@@ -623,11 +631,6 @@
             getUserIP();
             checkActivation();
             checkClaimed();
-            
-            if (localStorage.getItem('site_activated') === 'true' || userIP === ADMIN_IP) {
-                updateTimerAndPromo();
-                setInterval(updateTimerAndPromo, 1000);
-            }
         });
     </script>
 </body>
