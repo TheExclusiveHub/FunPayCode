@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Таймер кода</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
     <style>
         body {
             margin: 0;
@@ -49,41 +54,6 @@
             border: 2px solid #fff;
             max-width: 500px;
             width: 90%;
-        }
-
-        .activation-modal h2 {
-            margin-bottom: 20px;
-            font-size: 1.8em;
-        }
-
-        .activation-modal p {
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        .activation-input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .activation-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .activation-button:hover {
-            background: #45a049;
         }
 
         .container {
@@ -145,19 +115,6 @@
             margin-top: 20px;
         }
 
-        .success-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            border-radius: 15px;
-            border: 2px solid #4CAF50;
-            z-index: 2000;
-            text-align: center;
-        }
-
         .admin-button {
             position: fixed;
             bottom: 20px;
@@ -195,84 +152,6 @@
             overflow-y: auto;
         }
 
-        .brainrot-history-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            padding: 30px;
-            border-radius: 15px;
-            border: 2px solid #FF5722;
-            z-index: 4000;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .admin-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #444;
-            border-radius: 8px;
-        }
-
-        .admin-section h3 {
-            margin-top: 0;
-            color: #2196F3;
-        }
-
-        .code-item {
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .generate-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-
-        .duration-selector {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            z-index: 3001;
-        }
-
-        .duration-option {
-            display: block;
-            background: #333;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            margin: 5px 0;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .duration-option:hover {
-            background: #444;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        /* Онлайн и подписка */
         .online-counter {
             position: fixed;
             bottom: 20px;
@@ -293,7 +172,6 @@
             font-size: 1.1em;
         }
 
-        /* Brainrot изображения */
         .brainrot-image {
             position: absolute;
             width: 100px;
@@ -308,7 +186,6 @@
             transform: scale(0.1) rotate(360deg);
         }
 
-        /* Brainrot модальное окно */
         .brainrot-modal {
             position: fixed;
             top: 50%;
@@ -340,33 +217,8 @@
             letter-spacing: 2px;
         }
 
-        .history-item {
-            display: flex;
-            align-items: center;
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-        }
-
-        .history-item img {
-            width: 50px;
-            height: 50px;
-            margin-right: 15px;
-        }
-
-        .history-info {
-            text-align: left;
-        }
-
-        .history-name {
-            font-weight: bold;
-            color: #ffeb3b;
-        }
-
-        .history-code {
-            font-family: 'Courier New', monospace;
-            color: #4CAF50;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -375,8 +227,7 @@
     <div id="blurOverlay" class="blur-overlay">
         <div class="activation-modal">
             <h2>Активация сайта</h2>
-            <p>Для использования сайта необходим ключ активации. Если у вас его нет, вы можете приобрести его на моём FunPay:</p>
-            <p><a href="https://funpay.com/users/8048046/" style="color: #4CAF50;">https://funpay.com/users/8048046/</a></p>
+            <p>Для использования сайта необходим ключ активации.</p>
             <input type="text" id="activationKey" class="activation-input" placeholder="Введите ключ активации">
             <button onclick="activateSite()" class="activation-button">Активировать</button>
             <p id="activationMessage" style="color: #ff4444; margin-top: 10px;"></p>
@@ -402,14 +253,6 @@
     <div class="online-counter" id="onlineCounter">Онлайн: 1</div>
     <div class="subscription-info" id="subscriptionInfo">Подписка действует до: --.--.----</div>
 
-    <!-- Модальное окно успеха -->
-    <div id="successModal" class="success-modal hidden">
-        <h2>Поздравляю!</h2>
-        <p>Ты смог забрать промокод.</p>
-        <p class="promo-code" id="successPromoCode">XXXX-XXXX-XXXX-XXXX</p>
-        <button onclick="closeSuccessModal()" class="activation-button">Закрыть</button>
-    </div>
-
     <!-- Brainrot модальное окно -->
     <div id="brainrotModal" class="brainrot-modal hidden">
         <h2>Поздравляю! Ты нашёл брейнрота!</h2>
@@ -421,69 +264,41 @@
 
     <!-- Админ панель -->
     <button id="adminButton" class="admin-button hidden" onclick="toggleAdminPanel()">⚙</button>
-    
-    <div id="durationSelector" class="duration-selector hidden">
-        <button class="duration-option" onclick="setDuration(1)">1 день</button>
-        <button class="duration-option" onclick="setDuration(7)">1 неделя</button>
-        <button class="duration-option" onclick="setDuration(30)">1 месяц</button>
-    </div>
 
     <div id="adminPanel" class="admin-panel hidden">
         <h2>Панель администратора</h2>
-        
-        <div class="admin-section">
-            <h3>Длительность промокода</h3>
-            <button onclick="toggleDurationSelector()" class="generate-button">Выбрать длительность</button>
-            <div>Текущая: <span id="currentDuration">1 день</span></div>
+        <div id="adminContent">
+            <p>Загрузка...</p>
         </div>
-
-        <div class="admin-section">
-            <h3>Сгенерировать промокод</h3>
-            <button onclick="generateSingleCode()" class="generate-button">Сгенерировать код</button>
-            <div id="currentCode" class="code-item">Текущий код: -</div>
-        </div>
-
-        <div class="admin-section">
-            <h3>История кодов</h3>
-            <div id="codeHistory">Нет данных</div>
-        </div>
-
-        <div class="admin-section">
-            <h3>Активированные коды</h3>
-            <div id="activatedCodes">Нет данных</div>
-        </div>
-
-        <div class="admin-section">
-            <h3>Неактивированные коды</h3>
-            <div id="inactiveCodes">Нет данных</div>
-        </div>
-
         <button onclick="closeAdminPanel()" class="claim-button" style="background: #666; margin-top: 20px;">Закрыть</button>
-        <button onclick="showBrainrotHistory()" class="claim-button" style="background: #FF5722; margin-top: 10px;">История брейнротов</button>
-    </div>
-
-    <!-- Панель истории брейнротов -->
-    <div id="brainrotHistoryPanel" class="brainrot-history-panel hidden">
-        <h2>История нахождения брейнротов</h2>
-        <div id="brainrotHistoryList">Нет данных</div>
-        <button onclick="closeBrainrotHistory()" class="claim-button" style="background: #666; margin-top: 20px;">Закрыть</button>
     </div>
 
     <script>
+        // Firebase конфигурация - ЗАМЕНИТЕ НА ВАШУ КОНФИГУРАЦИЮ
+const firebaseConfig = {
+  apiKey: "AIzaSyAKaKlDD4f22zLRzKu-JfsafBnxwcfvVFA",
+  authDomain: "pvb-gifts.firebaseapp.com",
+  projectId: "pvb-gifts",
+  storageBucket: "pvb-gifts.firebasestorage.app",
+  messagingSenderId: "1025791484911",
+  appId: "1:1025791484911:web:a818cd948d8c6dc2054c1a"
+};
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // Конфигурация
         const ADMIN_IP = '171.33.254.90';
-        let currentDuration = 1; // дни
         let userIP = '';
         let isAdmin = false;
-        let timerInterval = null;
-        let brainrotInterval = null;
-        let onlineUsers = 1;
-        const brainrotImages = [
-            'CrazylonePizaion.png',
-            'Los_Tralaleritos.png', 
-            'LosSeko.png',
-            'Meowzio_Sushini.png'
-        ];
+        let userId = generateUserId();
+        let currentBrainrot = null;
+
+        // Генерация ID пользователя
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9);
+        }
 
         // Получаем IP пользователя
         async function getUserIP() {
@@ -491,30 +306,32 @@
                 const response = await fetch('https://api.ipify.org?format=json');
                 const data = await response.json();
                 userIP = data.ip;
-                console.log('User IP:', userIP);
                 checkAdminAccess();
+                initializeUser();
             } catch (error) {
-                console.log('Не удалось получить IP');
                 userIP = 'unknown';
                 checkAdminAccess();
+                initializeUser();
             }
         }
 
         function checkAdminAccess() {
             if (userIP === ADMIN_IP) {
                 isAdmin = true;
-                console.log('Admin access granted');
-                // Для админа сразу показываем контент
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 document.getElementById('adminButton').classList.remove('hidden');
-                loadAdminData();
-                startTimer();
-                initializePromoCode();
-                updateSubscriptionInfo();
-            } else {
-                console.log('Regular user');
+                initializeSite();
             }
+        }
+
+        // Инициализация пользователя в Firebase
+        function initializeUser() {
+            database.ref('users/' + userId).set({
+                ip: userIP,
+                lastSeen: Date.now(),
+                isAdmin: isAdmin
+            });
         }
 
         // Активация сайта
@@ -522,210 +339,129 @@
             const key = document.getElementById('activationKey').value.trim();
             const messageElement = document.getElementById('activationMessage');
             
-            // Проверяем, не активирован ли уже сайт
-            if (localStorage.getItem('site_activated') === 'true') {
-                messageElement.textContent = 'Сайт уже активирован!';
-                return;
-            }
-            
-            // Проверяем ключ
-            if (validateActivationKey(key)) {
+            if (key) {
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 localStorage.setItem('site_activated', 'true');
-                localStorage.setItem('activation_key', key);
-                
-                // Устанавливаем дату окончания подписки (30 дней от текущей даты)
-                const expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + 30);
-                localStorage.setItem('subscription_expiry', expiryDate.getTime().toString());
-                
-                startTimer();
-                initializePromoCode();
-                updateSubscriptionInfo();
-                startBrainrotSpawning();
+                initializeSite();
             } else {
-                messageElement.textContent = 'Неверный ключ активации!';
+                messageElement.textContent = 'Введите ключ активации!';
             }
-        }
-
-        function validateActivationKey(key) {
-            return key.length >= 10;
         }
 
         // Проверяем активацию при загрузке
         function checkActivation() {
-            if (localStorage.getItem('site_activated') === 'true') {
+            if (localStorage.getItem('site_activated') === 'true' || isAdmin) {
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
-                startTimer();
-                initializePromoCode();
-                updateSubscriptionInfo();
-                startBrainrotSpawning();
-            }
-        }
-
-        // Обновление информации о подписке
-        function updateSubscriptionInfo() {
-            const expiryTimestamp = localStorage.getItem('subscription_expiry');
-            if (expiryTimestamp) {
-                const expiryDate = new Date(parseInt(expiryTimestamp));
-                const day = expiryDate.getDate().toString().padStart(2, '0');
-                const month = (expiryDate.getMonth() + 1).toString().padStart(2, '0');
-                const year = expiryDate.getFullYear();
-                const hours = expiryDate.getHours().toString().padStart(2, '0');
-                const minutes = expiryDate.getMinutes().toString().padStart(2, '0');
-                
-                document.getElementById('subscriptionInfo').textContent = 
-                    `Подписка действует до: ${day}.${month}.${year} ${hours}:${minutes}`;
-            }
-        }
-
-        // Онлайн пользователи
-        function updateOnlineCounter() {
-            // Простая имитация онлайн (можно заменить на реальную логику)
-            onlineUsers = Math.max(1, Math.floor(Math.random() * 10) + 1);
-            document.getElementById('onlineCounter').textContent = `Онлайн: ${onlineUsers}`;
-        }
-
-        // Brainrot система
-        function startBrainrotSpawning() {
-            // Спавним brainrot каждую минуту
-            brainrotInterval = setInterval(spawnBrainrot, 60000);
-            // Сразу спавним первый brainrot
-            setTimeout(spawnBrainrot, 5000);
-        }
-
-        function spawnBrainrot() {
-            const randomImage = brainrotImages[Math.floor(Math.random() * brainrotImages.length)];
-            const img = document.createElement('img');
-            img.src = randomImage;
-            img.className = 'brainrot-image';
-            img.alt = randomImage.replace('.png', '');
-            
-            // Случайная позиция на экране
-            const maxX = window.innerWidth - 100;
-            const maxY = window.innerHeight - 100;
-            const posX = Math.floor(Math.random() * maxX);
-            const posY = Math.floor(Math.random() * maxY);
-            
-            img.style.left = posX + 'px';
-            img.style.top = posY + 'px';
-            
-            img.onclick = function() {
-                const brainrotCode = generateBrainrotCode();
-                showBrainrotModal(randomImage, brainrotCode);
-                // Плавное исчезновение
-                img.classList.add('fade-out');
-                setTimeout(() => {
-                    if (img.parentNode) {
-                        img.parentNode.removeChild(img);
-                    }
-                }, 500);
-                
-                // Сохраняем в историю для админа
                 if (isAdmin) {
-                    saveBrainrotToHistory(randomImage, brainrotCode);
+                    document.getElementById('adminButton').classList.remove('hidden');
                 }
-            };
-            
-            document.body.appendChild(img);
-            
-            // Автоматически удаляем через 55 секунд если не нажали
-            setTimeout(() => {
-                if (img.parentNode && !img.classList.contains('fade-out')) {
-                    img.classList.add('fade-out');
-                    setTimeout(() => {
-                        if (img.parentNode) {
-                            img.parentNode.removeChild(img);
-                        }
-                    }, 500);
+                initializeSite();
+            }
+        }
+
+        // Инициализация сайта
+        function initializeSite() {
+            // Подписка на обновления промокода
+            database.ref('currentPromo').on('value', (snapshot) => {
+                const promoData = snapshot.val();
+                if (promoData) {
+                    document.getElementById('promoCode').textContent = promoData.code;
+                    document.getElementById('discount').textContent = promoData.discount;
+                    updateTimer(promoData.generatedAt);
+                    updateClaimButton(promoData.claimed);
                 }
-            }, 55000);
+            });
+
+            // Подписка на онлайн пользователей
+            database.ref('users').on('value', (snapshot) => {
+                const users = snapshot.val();
+                const onlineCount = users ? Object.keys(users).length : 0;
+                document.getElementById('onlineCounter').textContent = `Онлайн: ${onlineCount}`;
+            });
+
+            // Подписка на брейнроты
+            database.ref('currentBrainrot').on('value', (snapshot) => {
+                const brainrotData = snapshot.val();
+                if (brainrotData && brainrotData.active) {
+                    showBrainrot(brainrotData);
+                } else {
+                    removeBrainrot();
+                }
+            });
+
+            // Подписка на подписку
+            database.ref('subscription').on('value', (snapshot) => {
+                const subData = snapshot.val();
+                if (subData) {
+                    updateSubscriptionInfo(subData.expiry);
+                }
+            });
+
+            // Инициализация подписки (если нет в базе)
+            database.ref('subscription').once('value').then((snapshot) => {
+                if (!snapshot.exists()) {
+                    const expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + 30);
+                    database.ref('subscription').set({
+                        expiry: expiryDate.getTime()
+                    });
+                }
+            });
         }
 
-        function generateBrainrotCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-                if (i === 2) result += '-';
-            }
-            return result;
-        }
-
-        function showBrainrotModal(imageSrc, code) {
-            document.getElementById('foundBrainrotImage').src = imageSrc;
-            document.getElementById('brainrotCode').textContent = code;
-            document.getElementById('brainrotModal').classList.remove('hidden');
-        }
-
-        function claimBrainrotPrize() {
-            alert('Код отправлен продавцу! Ожидайте выдачи приза.');
-            document.getElementById('brainrotModal').classList.add('hidden');
-        }
-
-        function saveBrainrotToHistory(imageSrc, code) {
-            const brainrotName = imageSrc.replace('.png', '');
-            const historyItem = {
-                image: imageSrc,
-                name: brainrotName,
-                code: code,
-                foundAt: new Date().toLocaleString('ru-RU')
-            };
+        // Обновление таймера
+        function updateTimer(generatedAt) {
+            const updateInterval = 2 * 60 * 60 * 1000; // 2 часа
+            const nextUpdate = generatedAt + updateInterval;
             
-            let history = JSON.parse(localStorage.getItem('admin_brainrotHistory') || '[]');
-            history.unshift(historyItem);
-            localStorage.setItem('admin_brainrotHistory', JSON.stringify(history));
-        }
-
-        function showBrainrotHistory() {
-            const history = JSON.parse(localStorage.getItem('admin_brainrotHistory') || '[]');
-            const historyElement = document.getElementById('brainrotHistoryList');
-            
-            if (history.length > 0) {
-                historyElement.innerHTML = history.map(item => `
-                    <div class="history-item">
-                        <img src="${item.image}" alt="${item.name}">
-                        <div class="history-info">
-                            <div class="history-name">${item.name}</div>
-                            <div class="history-code">Код: ${item.code}</div>
-                            <div>Найден: ${item.foundAt}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                historyElement.innerHTML = 'Нет данных';
-            }
-            
-            document.getElementById('brainrotHistoryPanel').classList.remove('hidden');
-        }
-
-        function closeBrainrotHistory() {
-            document.getElementById('brainrotHistoryPanel').classList.add('hidden');
-        }
-
-        // Остальные функции (генерация скидки, таймер, промокоды, админ-панель) остаются без изменений
-        // ... (вставьте сюда все предыдущие функции из предыдущего кода)
-
-        // Генерация скидки (одинаковая для всех)
-        function generateGlobalDiscount() {
-            const currentPeriod = getCurrentPeriod();
-            let globalDiscount = localStorage.getItem('global_discount_' + currentPeriod);
-            
-            if (!globalDiscount) {
-                const random = Math.random() * 100;
-                if (random < 70) globalDiscount = '5%';
-                else if (random < 95) globalDiscount = '10%';
-                else globalDiscount = '15%';
+            function update() {
+                const now = Date.now();
+                const timeLeft = nextUpdate - now;
                 
-                localStorage.setItem('global_discount_' + currentPeriod, globalDiscount);
+                if (timeLeft <= 0) {
+                    generateNewPromoCode();
+                    return;
+                }
+                
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                document.getElementById('timer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             }
             
-            return globalDiscount;
+            update();
+            setInterval(update, 1000);
         }
 
-        // Таймер и промокоды
+        // Обновление кнопки "Забрать промокод"
+        function updateClaimButton(claimed) {
+            if (claimed) {
+                document.getElementById('claimButton').disabled = true;
+                document.getElementById('claimedMessage').classList.remove('hidden');
+            } else {
+                document.getElementById('claimButton').disabled = false;
+                document.getElementById('claimedMessage').classList.add('hidden');
+            }
+        }
+
+        // Генерация нового промокода
+        function generateNewPromoCode() {
+            const code = generatePromoCode();
+            const discount = generateDiscount();
+            
+            database.ref('currentPromo').set({
+                code: code,
+                discount: discount,
+                generatedAt: Date.now(),
+                claimed: false,
+                claimedBy: null
+            });
+        }
+
         function generatePromoCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let result = '';
@@ -738,172 +474,106 @@
             return result;
         }
 
-        function getNextUpdateTime() {
-            const now = new Date();
-            const periodsPerDay = 4;
-            const periodMinutes = 6 * 60;
-            
-            const totalMinutesToday = now.getHours() * 60 + now.getMinutes();
-            const currentPeriod = Math.floor(totalMinutesToday / periodMinutes);
-            const nextPeriod = (currentPeriod + 1) % periodsPerDay;
-            
-            let nextUpdate = new Date(now);
-            nextUpdate.setHours(Math.floor(nextPeriod * 6), 0, 0, 0);
-            
-            if (nextUpdate <= now) {
-                nextUpdate.setDate(nextUpdate.getDate() + 1);
-            }
-            
-            return nextUpdate;
+        function generateDiscount() {
+            const random = Math.random() * 100;
+            if (random < 70) return '5%';
+            if (random < 95) return '10%';
+            return '15%';
         }
 
-        function updateTimerAndPromo() {
-            const now = new Date();
-            const nextUpdate = getNextUpdateTime();
-            const timeLeft = nextUpdate - now;
-
-            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-            document.getElementById('timer').textContent = 
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-            if (timeLeft <= 1000) {
-                generateNewPromoCode();
-            }
+        // Забрать промокод
+        function claimPromoCode() {
+            database.ref('currentPromo').once('value').then((snapshot) => {
+                const promoData = snapshot.val();
+                if (promoData && !promoData.claimed) {
+                    database.ref('currentPromo').update({
+                        claimed: true,
+                        claimedBy: userId
+                    });
+                    
+                    // Сохраняем в историю
+                    database.ref('promoHistory').push().set({
+                        code: promoData.code,
+                        claimedBy: userId,
+                        claimedAt: Date.now(),
+                        userIP: userIP
+                    });
+                }
+            });
         }
 
-        function initializePromoCode() {
-            const currentPeriod = getCurrentPeriod();
-            let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
+        // Brainrot система
+        function showBrainrot(brainrotData) {
+            if (currentBrainrot) return;
             
-            if (!storedPromo) {
-                generateNewPromoCode();
-            } else {
-                const globalDiscount = generateGlobalDiscount();
-                document.getElementById('promoCode').textContent = storedPromo;
-                document.getElementById('discount').textContent = globalDiscount;
-            }
+            currentBrainrot = brainrotData;
+            const img = document.createElement('img');
+            img.src = brainrotData.image;
+            img.className = 'brainrot-image';
+            img.alt = brainrotData.name;
+            img.style.left = brainrotData.position.x + 'px';
+            img.style.top = brainrotData.position.y + 'px';
             
-            checkGlobalClaimed();
-        }
-
-        function generateNewPromoCode() {
-            const currentPeriod = getCurrentPeriod();
-            const newPromoCode = generatePromoCode();
-            const globalDiscount = generateGlobalDiscount();
-            
-            localStorage.setItem('promoCode_' + currentPeriod, newPromoCode);
-            localStorage.setItem('promoCode_timestamp', Date.now());
-            
-            document.getElementById('promoCode').textContent = newPromoCode;
-            document.getElementById('discount').textContent = globalDiscount;
-            
-            localStorage.removeItem('global_promo_claimed_' + currentPeriod);
-            checkGlobalClaimed();
-        }
-
-        function getCurrentPeriod() {
-            const now = new Date();
-            const periodsPerDay = 4;
-            const periodMinutes = 6 * 60;
-            const totalMinutesToday = now.getHours() * 60 + now.getMinutes();
-            
-            return Math.floor(totalMinutesToday / periodMinutes);
-        }
-
-        function startTimer() {
-            updateTimerAndPromo();
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
-            timerInterval = setInterval(updateTimerAndPromo, 1000);
-        }
-
-        function checkGlobalClaimed() {
-            const currentPeriod = getCurrentPeriod();
-            const isClaimed = localStorage.getItem('global_promo_claimed_' + currentPeriod) === 'true';
-            
-            if (isClaimed) {
-                document.getElementById('claimButton').disabled = true;
-                document.getElementById('claimedMessage').classList.remove('hidden');
-            } else {
-                document.getElementById('claimButton').disabled = false;
-                document.getElementById('claimedMessage').classList.add('hidden');
-            }
-        }
-
-        // Админ функции
-        function setDuration(days) {
-            currentDuration = days;
-            const durationText = days === 1 ? '1 день' : days === 7 ? '1 неделя' : '1 месяц';
-            document.getElementById('currentDuration').textContent = durationText;
-            document.getElementById('durationSelector').classList.add('hidden');
-            
-            if (isAdmin) {
-                localStorage.setItem('admin_duration', days.toString());
-            }
-        }
-
-        function generateSingleCode() {
-            const code = generatePromoCode();
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + currentDuration);
-            
-            const codeData = {
-                code: code,
-                generated: new Date().toLocaleString('ru-RU'),
-                expires: expiryDate.toLocaleDateString('ru-RU'),
-                activated: false,
-                duration: currentDuration + ' дней'
+            img.onclick = function() {
+                showBrainrotModal(brainrotData);
+                img.classList.add('fade-out');
+                setTimeout(() => {
+                    if (img.parentNode) {
+                        img.parentNode.removeChild(img);
+                    }
+                }, 500);
+                
+                // Сохраняем в историю
+                database.ref('brainrotHistory').push().set({
+                    image: brainrotData.image,
+                    name: brainrotData.name,
+                    code: brainrotData.code,
+                    foundBy: userId,
+                    foundAt: Date.now(),
+                    userIP: userIP
+                });
             };
             
-            let history = JSON.parse(localStorage.getItem('admin_codeHistory') || '[]');
-            history.unshift(codeData);
-            localStorage.setItem('admin_codeHistory', JSON.stringify(history));
-            
-            let inactive = JSON.parse(localStorage.getItem('admin_inactiveCodes') || '[]');
-            inactive.unshift(codeData);
-            localStorage.setItem('admin_inactiveCodes', JSON.stringify(inactive));
-            
-            document.getElementById('currentCode').textContent = `Текущий код: ${code}`;
-            loadAdminData();
+            document.body.appendChild(img);
         }
 
-        function loadAdminData() {
-            if (!isAdmin) return;
-            
-            const savedDuration = localStorage.getItem('admin_duration');
-            if (savedDuration) {
-                currentDuration = parseInt(savedDuration);
-                const durationText = currentDuration === 1 ? '1 день' : currentDuration === 7 ? '1 неделя' : '1 месяц';
-                document.getElementById('currentDuration').textContent = durationText;
-            }
-            
-            const history = JSON.parse(localStorage.getItem('admin_codeHistory') || '[]');
-            const historyElement = document.getElementById('codeHistory');
-            historyElement.innerHTML = history.length > 0 ? 
-                history.map(item => 
-                    `<div class="code-item">${item.code} (${item.generated}) - ${item.duration}</div>`
-                ).join('') : 'Нет данных';
-            
-            const activated = JSON.parse(localStorage.getItem('admin_activatedCodes') || '[]');
-            const activatedElement = document.getElementById('activatedCodes');
-            activatedElement.innerHTML = activated.length > 0 ? 
-                activated.map(item => 
-                    `<div class="code-item">${item.code} - до ${item.expires}</div>`
-                ).join('') : 'Нет данных';
-            
-            const inactive = JSON.parse(localStorage.getItem('admin_inactiveCodes') || '[]');
-            const inactiveElement = document.getElementById('inactiveCodes');
-            inactiveElement.innerHTML = inactive.length > 0 ? 
-                inactive.map(item => 
-                    `<div class="code-item">${item.code} - до ${item.expires}</div>`
-                ).join('') : 'Нет данных';
+        function removeBrainrot() {
+            currentBrainrot = null;
+            const images = document.querySelectorAll('.brainrot-image');
+            images.forEach(img => {
+                img.classList.add('fade-out');
+                setTimeout(() => {
+                    if (img.parentNode) {
+                        img.parentNode.removeChild(img);
+                    }
+                }, 500);
+            });
         }
 
-        // UI функции
+        function showBrainrotModal(brainrotData) {
+            document.getElementById('foundBrainrotImage').src = brainrotData.image;
+            document.getElementById('brainrotCode').textContent = brainrotData.code;
+            document.getElementById('brainrotModal').classList.remove('hidden');
+        }
+
+        function claimBrainrotPrize() {
+            document.getElementById('brainrotModal').classList.add('hidden');
+        }
+
+        // Обновление информации о подписке
+        function updateSubscriptionInfo(expiryTimestamp) {
+            const expiryDate = new Date(parseInt(expiryTimestamp));
+            const day = expiryDate.getDate().toString().padStart(2, '0');
+            const month = (expiryDate.getMonth() + 1).toString().padStart(2, '0');
+            const year = expiryDate.getFullYear();
+            const hours = expiryDate.getHours().toString().padStart(2, '0');
+            const minutes = expiryDate.getMinutes().toString().padStart(2, '0');
+            
+            document.getElementById('subscriptionInfo').textContent = 
+                `Подписка действует до: ${day}.${month}.${year} ${hours}:${minutes}`;
+        }
+
+        // Админ панель
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
             if (panel.classList.contains('hidden')) {
@@ -914,37 +584,53 @@
             }
         }
 
-        function toggleDurationSelector() {
-            const selector = document.getElementById('durationSelector');
-            selector.classList.toggle('hidden');
-        }
-
         function closeAdminPanel() {
             document.getElementById('adminPanel').classList.add('hidden');
-            document.getElementById('durationSelector').classList.add('hidden');
         }
 
-        function closeSuccessModal() {
-            document.getElementById('successModal').classList.add('hidden');
-        }
-
-        function claimPromoCode() {
-            const promoCode = document.getElementById('promoCode').textContent;
+        function loadAdminData() {
+            if (!isAdmin) return;
             
-            document.getElementById('successPromoCode').textContent = promoCode;
-            document.getElementById('successModal').classList.remove('hidden');
-            document.getElementById('claimButton').disabled = true;
+            const adminContent = document.getElementById('adminContent');
+            adminContent.innerHTML = '<p>Загрузка данных...</p>';
             
-            const currentPeriod = getCurrentPeriod();
-            localStorage.setItem('global_promo_claimed_' + currentPeriod, 'true');
-            document.getElementById('claimedMessage').classList.remove('hidden');
+            // Загружаем историю промокодов
+            database.ref('promoHistory').limitToLast(10).once('value').then((snapshot) => {
+                let historyHTML = '<h3>История промокодов</h3>';
+                const history = snapshot.val();
+                if (history) {
+                    Object.values(history).forEach(item => {
+                        historyHTML += `<div class="code-item">${item.code} - ${new Date(item.claimedAt).toLocaleString('ru-RU')}</div>`;
+                    });
+                } else {
+                    historyHTML += '<p>Нет данных</p>';
+                }
+                
+                // Загружаем историю брейнротов
+                database.ref('brainrotHistory').limitToLast(10).once('value').then((brainrotSnapshot) => {
+                    historyHTML += '<h3>История брейнротов</h3>';
+                    const brainrotHistory = brainrotSnapshot.val();
+                    if (brainrotHistory) {
+                        Object.values(brainrotHistory).forEach(item => {
+                            historyHTML += `
+                                <div class="history-item">
+                                    <strong>${item.name}</strong> - ${item.code} - ${new Date(item.foundAt).toLocaleString('ru-RU')}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyHTML += '<p>Нет данных</p>';
+                    }
+                    
+                    adminContent.innerHTML = historyHTML;
+                });
+            });
         }
 
         // Защита от инструментов разработчика
         document.addEventListener('keydown', function(e) {
             if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73) || 
-                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || (e.ctrlKey && e.keyCode === 85) || 
-                (e.ctrlKey && e.keyCode === 83)) {
+                (e.ctrlKey && e.shiftKey && e.keyCode === 74) || (e.ctrlKey && e.keyCode === 85)) {
                 e.preventDefault();
                 return false;
             }
@@ -959,10 +645,56 @@
         document.addEventListener('DOMContentLoaded', function() {
             getUserIP();
             checkActivation();
-            checkGlobalClaimed();
-            updateOnlineCounter();
-            setInterval(updateOnlineCounter, 30000); // Обновляем онлайн каждые 30 секунд
+            
+            // Автоматическая генерация брейнротов каждые 30 минут
+            setInterval(() => {
+                if (isAdmin) {
+                    generateBrainrot();
+                }
+            }, 30 * 60 * 1000);
         });
+
+        // Генерация брейнрота (только для админа)
+        function generateBrainrot() {
+            const brainrotImages = [
+                'CrazylonePizaion.png',
+                'Los_Tralaleritos.png', 
+                'LosSeko.png',
+                'Meowzio_Sushini.png'
+            ];
+            
+            const randomImage = brainrotImages[Math.floor(Math.random() * brainrotImages.length)];
+            const brainrotCode = generateBrainrotCode();
+            
+            const maxX = window.innerWidth - 100;
+            const maxY = window.innerHeight - 100;
+            const posX = Math.floor(Math.random() * maxX);
+            const posY = Math.floor(Math.random() * maxY);
+            
+            database.ref('currentBrainrot').set({
+                active: true,
+                image: randomImage,
+                name: randomImage.replace('.png', ''),
+                code: brainrotCode,
+                position: { x: posX, y: posY },
+                generatedAt: Date.now()
+            });
+            
+            // Автоматически убираем через 25 минут
+            setTimeout(() => {
+                database.ref('currentBrainrot').update({ active: false });
+            }, 25 * 60 * 1000);
+        }
+
+        function generateBrainrotCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+                if (i === 2) result += '-';
+            }
+            return result;
+        }
     </script>
 </body>
 </html>
