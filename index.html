@@ -407,12 +407,23 @@
             }
         }
 
-        // Генерация скидки
-        function generateDiscount() {
-            const random = Math.random() * 100;
-            if (random < 70) return '5%';
-            if (random < 95) return '10%';
-            return '15%';
+        // Генерация скидки (одинаковая для всех)
+        function generateGlobalDiscount() {
+            // Генерируем скидку только если её еще нет для текущего периода
+            const currentPeriod = getCurrentPeriod();
+            let globalDiscount = localStorage.getItem('global_discount_' + currentPeriod);
+            
+            if (!globalDiscount) {
+                const random = Math.random() * 100;
+                if (random < 70) globalDiscount = '5%';
+                else if (random < 95) globalDiscount = '10%';
+                else globalDiscount = '15%';
+                
+                localStorage.setItem('global_discount_' + currentPeriod, globalDiscount);
+                console.log('New global discount generated:', globalDiscount);
+            }
+            
+            return globalDiscount;
         }
 
         // Таймер и промокоды
@@ -470,29 +481,36 @@
         function initializePromoCode() {
             const currentPeriod = getCurrentPeriod();
             let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
-            let storedDiscount = localStorage.getItem('discount_' + currentPeriod);
             
             if (!storedPromo) {
                 generateNewPromoCode();
             } else {
+                // Используем глобальную скидку для текущего периода
+                const globalDiscount = generateGlobalDiscount();
                 document.getElementById('promoCode').textContent = storedPromo;
-                document.getElementById('discount').textContent = storedDiscount || '5%';
+                document.getElementById('discount').textContent = globalDiscount;
             }
+            
+            // Проверяем, забран ли промокод глобально
+            checkGlobalClaimed();
         }
 
         function generateNewPromoCode() {
             const currentPeriod = getCurrentPeriod();
             const newPromoCode = generatePromoCode();
-            const discount = generateDiscount();
+            const globalDiscount = generateGlobalDiscount(); // Используем глобальную скидку
             
             localStorage.setItem('promoCode_' + currentPeriod, newPromoCode);
-            localStorage.setItem('discount_' + currentPeriod, discount);
             localStorage.setItem('promoCode_timestamp', Date.now());
             
             document.getElementById('promoCode').textContent = newPromoCode;
-            document.getElementById('discount').textContent = discount;
+            document.getElementById('discount').textContent = globalDiscount;
             
-            console.log('New promo code generated:', newPromoCode, 'Discount:', discount);
+            // Сбрасываем статус "забрано" при новом промокоде
+            localStorage.removeItem('global_promo_claimed_' + currentPeriod);
+            checkGlobalClaimed();
+            
+            console.log('New promo code generated:', newPromoCode, 'Global discount:', globalDiscount);
         }
 
         function getCurrentPeriod() {
@@ -513,12 +531,31 @@
             timerInterval = setInterval(updateTimerAndPromo, 1000); // Затем каждую секунду
         }
 
-        // Админ функции
+        // Проверяем глобально забран ли промокод
+        function checkGlobalClaimed() {
+            const currentPeriod = getCurrentPeriod();
+            const isClaimed = localStorage.getItem('global_promo_claimed_' + currentPeriod) === 'true';
+            
+            if (isClaimed) {
+                document.getElementById('claimButton').disabled = true;
+                document.getElementById('claimedMessage').classList.remove('hidden');
+            } else {
+                document.getElementById('claimButton').disabled = false;
+                document.getElementById('claimedMessage').classList.add('hidden');
+            }
+        }
+
+        // Админ функции (используем localStorage для синхронизации между устройствами)
         function setDuration(days) {
             currentDuration = days;
             const durationText = days === 1 ? '1 день' : days === 7 ? '1 неделя' : '1 месяц';
             document.getElementById('currentDuration').textContent = durationText;
             document.getElementById('durationSelector').classList.add('hidden');
+            
+            // Сохраняем настройку для всех устройств админа
+            if (isAdmin) {
+                localStorage.setItem('admin_duration', days.toString());
+            }
         }
 
         function generateSingleCode() {
@@ -534,39 +571,49 @@
                 duration: currentDuration + ' дней'
             };
             
-            // Сохраняем в историю
-            let history = JSON.parse(localStorage.getItem('codeHistory') || '[]');
+            // Сохраняем в историю (синхронизировано между устройствами админа)
+            let history = JSON.parse(localStorage.getItem('admin_codeHistory') || '[]');
             history.unshift(codeData);
-            localStorage.setItem('codeHistory', JSON.stringify(history));
+            localStorage.setItem('admin_codeHistory', JSON.stringify(history));
             
-            // Сохраняем в неактивированные
-            let inactive = JSON.parse(localStorage.getItem('inactiveCodes') || '[]');
+            // Сохраняем в неактивированные (синхронизировано между устройствами админа)
+            let inactive = JSON.parse(localStorage.getItem('admin_inactiveCodes') || '[]');
             inactive.unshift(codeData);
-            localStorage.setItem('inactiveCodes', JSON.stringify(inactive));
+            localStorage.setItem('admin_inactiveCodes', JSON.stringify(inactive));
             
             document.getElementById('currentCode').textContent = `Текущий код: ${code}`;
             loadAdminData();
         }
 
         function loadAdminData() {
-            // Загружаем историю
-            const history = JSON.parse(localStorage.getItem('codeHistory') || '[]');
+            if (!isAdmin) return;
+            
+            // Загружаем настройки длительности
+            const savedDuration = localStorage.getItem('admin_duration');
+            if (savedDuration) {
+                currentDuration = parseInt(savedDuration);
+                const durationText = currentDuration === 1 ? '1 день' : currentDuration === 7 ? '1 неделя' : '1 месяц';
+                document.getElementById('currentDuration').textContent = durationText;
+            }
+            
+            // Загружаем историю (синхронизировано между устройствами админа)
+            const history = JSON.parse(localStorage.getItem('admin_codeHistory') || '[]');
             const historyElement = document.getElementById('codeHistory');
             historyElement.innerHTML = history.length > 0 ? 
                 history.map(item => 
                     `<div class="code-item">${item.code} (${item.generated}) - ${item.duration}</div>`
                 ).join('') : 'Нет данных';
             
-            // Загружаем активированные коды
-            const activated = JSON.parse(localStorage.getItem('activatedCodes') || '[]');
+            // Загружаем активированные коды (синхронизировано между устройствами админа)
+            const activated = JSON.parse(localStorage.getItem('admin_activatedCodes') || '[]');
             const activatedElement = document.getElementById('activatedCodes');
             activatedElement.innerHTML = activated.length > 0 ? 
                 activated.map(item => 
                     `<div class="code-item">${item.code} - до ${item.expires}</div>`
                 ).join('') : 'Нет данных';
             
-            // Загружаем неактивированные коды
-            const inactive = JSON.parse(localStorage.getItem('inactiveCodes') || '[]');
+            // Загружаем неактивированные коды (синхронизировано между устройствами админа)
+            const inactive = JSON.parse(localStorage.getItem('admin_inactiveCodes') || '[]');
             const inactiveElement = document.getElementById('inactiveCodes');
             inactiveElement.innerHTML = inactive.length > 0 ? 
                 inactive.map(item => 
@@ -599,7 +646,7 @@
             document.getElementById('successModal').classList.add('hidden');
         }
 
-        // Забрать промокод
+        // Забрать промокод (глобально для всех пользователей)
         function claimPromoCode() {
             const promoCode = document.getElementById('promoCode').textContent;
             const discount = document.getElementById('discount').textContent;
@@ -608,17 +655,12 @@
             document.getElementById('successModal').classList.remove('hidden');
             document.getElementById('claimButton').disabled = true;
             
-            // Помечаем промокод как забранный
-            localStorage.setItem('promo_claimed', 'true');
+            // Помечаем промокод как забранный ГЛОБАЛЬНО для текущего периода
+            const currentPeriod = getCurrentPeriod();
+            localStorage.setItem('global_promo_claimed_' + currentPeriod, 'true');
             document.getElementById('claimedMessage').classList.remove('hidden');
-        }
-
-        // Проверяем забран ли промокод
-        function checkClaimed() {
-            if (localStorage.getItem('promo_claimed') === 'true') {
-                document.getElementById('claimButton').disabled = true;
-                document.getElementById('claimedMessage').classList.remove('hidden');
-            }
+            
+            console.log('Promo code claimed globally for period:', currentPeriod);
         }
 
         // Защита от инструментов разработчика
@@ -659,7 +701,7 @@
             console.log('DOM loaded');
             getUserIP();
             checkActivation();
-            checkClaimed();
+            checkGlobalClaimed();
         });
     </script>
 </body>
