@@ -340,6 +340,7 @@
         let currentDuration = 1; // дни
         let userIP = '';
         let isAdmin = false;
+        let timerInterval = null;
 
         // Получаем IP пользователя
         async function getUserIP() {
@@ -347,6 +348,7 @@
                 const response = await fetch('https://api.ipify.org?format=json');
                 const data = await response.json();
                 userIP = data.ip;
+                console.log('User IP:', userIP);
                 checkAdminAccess();
             } catch (error) {
                 console.log('Не удалось получить IP');
@@ -358,12 +360,16 @@
         function checkAdminAccess() {
             if (userIP === ADMIN_IP) {
                 isAdmin = true;
+                console.log('Admin access granted');
                 // Для админа сразу показываем контент
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 document.getElementById('adminButton').classList.remove('hidden');
                 loadAdminData();
                 startTimer();
+                initializePromoCode();
+            } else {
+                console.log('Regular user');
             }
         }
 
@@ -379,6 +385,7 @@
                 localStorage.setItem('site_activated', 'true');
                 localStorage.setItem('activation_key', key);
                 startTimer();
+                initializePromoCode();
             } else {
                 messageElement.textContent = 'Неверный ключ активации!';
             }
@@ -396,6 +403,7 @@
                 document.getElementById('blurOverlay').classList.add('hidden');
                 document.getElementById('mainContent').classList.remove('hidden');
                 startTimer();
+                initializePromoCode();
             }
         }
 
@@ -453,22 +461,38 @@
             document.getElementById('timer').textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-            // Обновляем промокод и скидку каждые 6 часов
+            // Проверяем, нужно ли обновить промокод
+            if (timeLeft <= 1000) { // Если осталась 1 секунда или меньше
+                generateNewPromoCode();
+            }
+        }
+
+        function initializePromoCode() {
             const currentPeriod = getCurrentPeriod();
             let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
+            let storedDiscount = localStorage.getItem('discount_' + currentPeriod);
             
-            if (!storedPromo || timeLeft <= 0) {
-                storedPromo = generatePromoCode();
-                const discount = generateDiscount();
-                localStorage.setItem('promoCode_' + currentPeriod, storedPromo);
-                localStorage.setItem('discount_' + currentPeriod, discount);
-                localStorage.setItem('promoCode_timestamp', Date.now());
+            if (!storedPromo) {
+                generateNewPromoCode();
+            } else {
+                document.getElementById('promoCode').textContent = storedPromo;
+                document.getElementById('discount').textContent = storedDiscount || '5%';
             }
+        }
 
-            const discount = localStorage.getItem('discount_' + currentPeriod) || '5%';
+        function generateNewPromoCode() {
+            const currentPeriod = getCurrentPeriod();
+            const newPromoCode = generatePromoCode();
+            const discount = generateDiscount();
             
-            document.getElementById('promoCode').textContent = storedPromo;
+            localStorage.setItem('promoCode_' + currentPeriod, newPromoCode);
+            localStorage.setItem('discount_' + currentPeriod, discount);
+            localStorage.setItem('promoCode_timestamp', Date.now());
+            
+            document.getElementById('promoCode').textContent = newPromoCode;
             document.getElementById('discount').textContent = discount;
+            
+            console.log('New promo code generated:', newPromoCode, 'Discount:', discount);
         }
 
         function getCurrentPeriod() {
@@ -481,8 +505,12 @@
         }
 
         function startTimer() {
+            console.log('Starting timer...');
             updateTimerAndPromo(); // Сразу обновляем
-            setInterval(updateTimerAndPromo, 1000); // Затем каждую секунду
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timerInterval = setInterval(updateTimerAndPromo, 1000); // Затем каждую секунду
         }
 
         // Админ функции
@@ -628,6 +656,7 @@
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
             getUserIP();
             checkActivation();
             checkClaimed();
