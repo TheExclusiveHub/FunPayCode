@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Таймер кода</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: url('background.png') no-repeat center center fixed;
+            background-size: cover;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .timer {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .promo-code {
+            font-size: 1.8em;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+
+        .label {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        /* Скрываем контекстное меню */
+        #contextMenu {
+            display: none !important;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+    <div class="container">
+        <div class="label">До следующего кода:</div>
+        <div class="timer" id="timer">00:00:00</div>
+        
+        <div class="label">Текущий промокод:</div>
+        <div class="promo-code" id="promoCode">XXXX-XXXX-XXXX-XXXX</div>
+    </div>
+
+    <script>
+        // Блокировка F12 и других инструментов разработчика
+        document.addEventListener('keydown', function(e) {
+            // F12
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+Shift+J
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+U
+            if (e.ctrlKey && e.keyCode === 85) {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+S
+            if (e.ctrlKey && e.keyCode === 83) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Блокировка правой кнопки мыши
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Дополнительная защита от открытия инструментов разработчика
+        setInterval(function() {
+            if (window.outerHeight - window.innerHeight > 200 || 
+                window.outerWidth - window.innerWidth > 200) {
+                window.close();
+                window.location.href = 'about:blank';
+            }
+        }, 1000);
+
+        // Блокировка выделения текста
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Блокировка drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        function generatePromoCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 16; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+                if ((i + 1) % 4 === 0 && i !== 15) {
+                    result += '-';
+                }
+            }
+            return result;
+        }
+
+        function getNextUpdateTime() {
+            const now = new Date();
+            const mskOffset = 3 * 60; // MSK UTC+3 в минутах
+            const nowMsk = new Date(now.getTime() + (mskOffset - now.getTimezoneOffset()) * 60000);
+            
+            // Определяем следующий период (каждые 6 часов начиная с 0:00 MSK)
+            const periodsPerDay = 4; // 24 часа / 6 часов
+            const periodMinutes = 6 * 60; // 6 часов в минутах
+            
+            const totalMinutesToday = nowMsk.getHours() * 60 + nowMsk.getMinutes();
+            const currentPeriod = Math.floor(totalMinutesToday / periodMinutes);
+            const nextPeriod = (currentPeriod + 1) % periodsPerDay;
+            
+            let nextUpdate = new Date(nowMsk);
+            nextUpdate.setHours(Math.floor(nextPeriod * 6), 0, 0, 0);
+            
+            // Если следующий период на следующий день
+            if (nextUpdate <= nowMsk) {
+                nextUpdate.setDate(nextUpdate.getDate() + 1);
+            }
+            
+            // Конвертируем обратно в локальное время
+            return new Date(nextUpdate.getTime() - (mskOffset - now.getTimezoneOffset()) * 60000);
+        }
+
+        function updateTimerAndPromo() {
+            const now = new Date();
+            const nextUpdate = getNextUpdateTime();
+            const timeLeft = nextUpdate - now;
+
+            if (timeLeft <= 0) {
+                // Обновляем промокод и таймер
+                updatePromoCode();
+                return;
+            }
+
+            // Обновляем таймер
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('timer').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            // Сохраняем текущий промокод в localStorage
+            const currentPeriod = getCurrentPeriod();
+            let storedPromo = localStorage.getItem('promoCode_' + currentPeriod);
+            
+            if (!storedPromo) {
+                storedPromo = generatePromoCode();
+                localStorage.setItem('promoCode_' + currentPeriod, storedPromo);
+                localStorage.setItem('promoCode_timestamp', currentPeriod);
+            }
+
+            document.getElementById('promoCode').textContent = storedPromo;
+        }
+
+        function getCurrentPeriod() {
+            const now = new Date();
+            const mskOffset = 3 * 60;
+            const nowMsk = new Date(now.getTime() + (mskOffset - now.getTimezoneOffset()) * 60000);
+            
+            const periodsPerDay = 4;
+            const periodMinutes = 6 * 60;
+            const totalMinutesToday = nowMsk.getHours() * 60 + nowMsk.getMinutes();
+            
+            return Math.floor(totalMinutesToday / periodMinutes);
+        }
+
+        function updatePromoCode() {
+            const currentPeriod = getCurrentPeriod();
+            const newPromoCode = generatePromoCode();
+            
+            localStorage.setItem('promoCode_' + currentPeriod, newPromoCode);
+            localStorage.setItem('promoCode_timestamp', currentPeriod);
+            
+            document.getElementById('promoCode').textContent = newPromoCode;
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTimerAndPromo();
+            // Обновляем таймер каждую секунду
+            setInterval(updateTimerAndPromo, 1000);
+        });
+    </script>
+</body>
+</html>
